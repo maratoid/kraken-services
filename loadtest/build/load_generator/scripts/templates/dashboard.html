@@ -1,0 +1,108 @@
+<!-- Server side event (SSE) graphing !-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link type="text/css" rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css">
+  <link type="text/css" rel="stylesheet" href="files/css/graph.css">
+  <link type="text/css" rel="stylesheet" href="files/css/detail.css">
+  <link type="text/css" rel="stylesheet" href="files/css/extensions.css?v=2">
+
+  <script src="files/js/d3.v3.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+  <script>
+    jQuery.noConflict();
+  </script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js"></script>
+  <script src="files/js/rickshaw.min.js"></script>
+  <script src="files/js/extensions.js"></script>
+</head>
+
+<body>
+
+<div id="content">
+
+  <h1>Requests per second</h1>
+
+  <div id="chart_container">
+    <div id="chart"></div>
+  </div>
+
+</div>
+
+<script>
+
+var palette = new Rickshaw.Color.Palette( { scheme: 'colorwheel' } );
+
+var graph = null;
+
+// Create a new EventSource
+var evtSrc = new EventSource("/stream");
+
+function addData(chart, incoming) {
+  data = {}
+  data[incoming.slave_id] = incoming.rps
+  chart.series.addData(data);
+}
+
+function addZero(chart, incoming) {
+  data = {}
+  data[incoming.slave_id] = 0
+  chart.series.addData(data);
+}
+
+// Handle receiving data
+evtSrc.onmessage = function(e) {
+  var obj = JSON.parse(e.data);  
+
+  if (!graph) {
+    graph = new Rickshaw.Graph( {
+      element: document.getElementById("chart"),
+      width: window.innerWidth || document.body.clientWidth,
+      height: 500,
+      renderer: 'area',
+      stack: true,
+      series: new Rickshaw.Series.FixedDuration([{
+        name: obj.slave_id
+      }], palette, {
+        timeInterval: 50,
+        maxDataPoints: 100
+      })
+    } );
+
+    graph.render();
+
+    var hoverDetail = new Rickshaw.Graph.HoverDetail( {
+      graph: graph,
+      xFormatter: function(x) {
+        return new Date(x * 1000).toString();
+      }
+    } );
+
+    var ticksTreatment = 'glow';
+
+    var xAxis = new Rickshaw.Graph.Axis.Time( {
+      graph: graph,
+      ticksTreatment: ticksTreatment,
+      timeFixture: new Rickshaw.Fixtures.Time.Local()
+    } );
+
+    xAxis.render();
+
+    var yAxis = new Rickshaw.Graph.Axis.Y( {
+      graph: graph,
+      tickFormat: Rickshaw.Fixtures.Number.formatKMBT,
+      ticksTreatment: ticksTreatment
+    } );
+
+    yAxis.render();
+
+  } 
+
+  addData(graph, obj);
+  graph.update();
+};
+
+</script>
+
+</body>
+</html>
