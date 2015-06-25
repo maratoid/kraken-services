@@ -1,4 +1,3 @@
-<!-- Server side event (SSE) graphing !-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,14 +6,13 @@
   <link type="text/css" rel="stylesheet" href="files/css/detail.css">
   <link type="text/css" rel="stylesheet" href="files/css/extensions.css?v=2">
 
-  <script src="files/js/d3.v3.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
   <script>
     jQuery.noConflict();
   </script>
   <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.15/jquery-ui.min.js"></script>
+  <script src="files/js/d3.v3.js"></script>
   <script src="files/js/rickshaw.min.js"></script>
-  <script src="files/js/extensions.js"></script>
 </head>
 
 <body>
@@ -32,13 +30,11 @@
 <script>
 
 var palette = new Rickshaw.Color.Palette( { scheme: 'colorwheel' } );
-
 var graph = null;
 var seriesData = {}
 
 // Create a new EventSource
 var evtSrc = new EventSource("/stream");
-
 
 function addData(chart, incoming) {
   seriesData[incoming.slave_id] = incoming.rps
