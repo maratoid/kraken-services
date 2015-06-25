@@ -27,6 +27,7 @@ def get_requests_per_second(stat, client_id):
       influx_queue.put( {'request_key':request_key, 'requests_per_second':count, 'epoch_time':epoch_time} )
 
 def slave_report_log (client_id, data, ** kw):
+  print(data)
   for stat in data['stats']:
     get_requests_per_second(stat, client_id)
 
@@ -77,9 +78,7 @@ def stream():
               continue
             queue_data = influx_queue.get()
             data = json.dumps({"slave_id": queue_data['request_key'], 'rps': queue_data['requests_per_second'], 'epoch': queue_data['epoch_time']})
-            print(data)
             ev = ServerSentEvent(data)
-            print(ev.encode())
             yield ev.encode()
             time.sleep(0.05)
 

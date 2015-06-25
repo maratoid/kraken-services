@@ -34,20 +34,16 @@
 var palette = new Rickshaw.Color.Palette( { scheme: 'colorwheel' } );
 
 var graph = null;
+var seriesData = {}
 
 // Create a new EventSource
 var evtSrc = new EventSource("/stream");
 
-function addData(chart, incoming) {
-  data = {}
-  data[incoming.slave_id] = incoming.rps
-  chart.series.addData(data);
-}
 
-function addZero(chart, incoming) {
-  data = {}
-  data[incoming.slave_id] = 0
-  chart.series.addData(data);
+function addData(chart, incoming) {
+  seriesData[incoming.slave_id] = incoming.rps
+  chart.series.addData(seriesData);
+  graph.update();
 }
 
 // Handle receiving data
@@ -58,18 +54,17 @@ evtSrc.onmessage = function(e) {
     graph = new Rickshaw.Graph( {
       element: document.getElementById("chart"),
       width: window.innerWidth || document.body.clientWidth,
-      height: 500,
+      height: window.innerHeight / 2 || document.body.clientHeight / 2,
       renderer: 'area',
       stack: true,
       series: new Rickshaw.Series.FixedDuration([{
         name: obj.slave_id
       }], palette, {
-        timeInterval: 50,
-        maxDataPoints: 100
+        timeInterval: 1000,
+        maxDataPoints: 200,
+        timeBase: new Date().getTime() / 1000
       })
     } );
-
-    graph.render();
 
     var hoverDetail = new Rickshaw.Graph.HoverDetail( {
       graph: graph,
@@ -99,7 +94,6 @@ evtSrc.onmessage = function(e) {
   } 
 
   addData(graph, obj);
-  graph.update();
 };
 
 </script>
