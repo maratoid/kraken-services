@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    name: load-generator-master
+  name: load-generator-master
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    name: load-generator-master
+  template:
+    metadata:
+      labels:
+        kubernetes.io/color: FF0000
+        name: load-generator-master
+    spec:
+      containers:
+      - command:
+        - locust
+        - -f
+        - /scripts/locustfile.py
+        - --master
+        - --host=http://gcetest.kubeme.io
+        image: quay.io/maratoid/foobar-load-generator
+        imagePullPolicy: Always
+        name: load-generator-master
+        ports:
+        - containerPort: 8089
+          protocol: TCP
+        - containerPort: 5557
+          protocol: TCP
+        - containerPort: 5558
+          protocol: TCP
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    kubernetes.io/cluster-service: "true"
+    kubernetes.io/name: Locust
+    name: load-generator-master
+  name: load-generator-master
+  namespace: default
+spec:
+  ports:
+  - name: http
+    nodePort: 30340
+    port: 8089
+    protocol: TCP
+    targetPort: 8089
+  - name: slavecomm
+    nodePort: 30341
+    port: 5557
+    protocol: TCP
+    targetPort: 5557
+  - name: slavecomm2
+    nodePort: 30342
+    port: 5558
+    protocol: TCP
+    targetPort: 5558
+  selector:
+    name: load-generator-master
+  sessionAffinity: None
+  type: NodePort
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    name: load-generator-slave
+  name: load-generator-slave
+  namespace: default
+spec:
+  replicas: 5
+  selector:
+    name: load-generator-slave
+  template:
+    metadata:
+      labels:
+        kubernetes.io/color: 0080FF
+        name: load-generator-slave
+    spec:
+      containers:
+      - command:
+        - locust
+        - -f
+        - /scripts/locustfile.py
+        - --slave
+        - --master-host=load-generator-master
+        - --host=http://gcetest.kubeme.io
+        env:
+        - name: INFLUXDB_HOST
+          value: influxdb
+        - name: INFLUXDB_PORT
+          value: "8086"
+        - name: INFLUXDB_USER
+          value: root
+        - name: INFLUXDB_PASSWORD
+          value: root
+        - name: INFLUXDB_NAME
+          value: k8s
+        image: quay.io/maratoid/foobar-load-generator
+        imagePullPolicy: Always
+        name: load-generator-slave
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
